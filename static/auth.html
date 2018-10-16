@@ -1,0 +1,153 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+
+    <title>Group Management</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="css/auth.css" rel="stylesheet">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+
+    <script>
+      $(document).ready(function() {
+          console.log("Document ready!");
+          $.get('/auth/profile', function(data) {
+              console.log(data);
+              var userName = data.name;
+              var currentGroupName = data.details.currentGroup.name;
+              document.getElementById("userBlk").innerHTML = "Welcome " + userName;
+              document.getElementById("groupBlk").innerHTML = "Current group " + currentGroupName;
+              populateGroupList(data.details.membership);
+          });
+      });
+
+      function showMembership() {
+          console.log("Show membership");
+          $.get('/auth/profile', function(data) {
+              console.log(data);
+              populateGroupList(data.details.membership);
+          });
+      }
+
+      function showOwnership() {
+          console.log("Show membership");
+          $.get('/auth/profile', function(data) {
+              console.log(data);
+              populateGroupList(data.details.ownership);
+          });
+      }
+
+      function populateGroupList(groups) {
+          var gList = $('#groupList');
+          gList.empty();
+          $.each(groups, function(index, _group) {
+              gList.append(createGroupListItem(_group));
+          });
+      }
+
+      function createGroupListItem(group) {
+          var liNode = document.createElement('li');
+          var aNode = document.createElement('a');
+          aNode.setAttribute('id', group.id);
+          aNode.innerHTML = group.name;
+          aNode.onclick = function() {
+              showGroupInfo(group.id);
+          };
+          liNode.append(aNode);
+          return liNode;
+      }
+
+      function showGroupInfo(gid) {
+          console.log("Group " + gid + "was just clicked");
+          var groupNameNode = $("#groupName");
+          var groupOwnerNode = $("#groupOwner");
+          var groupMembersNode = $("#groupMembers");
+          var api = '/auth/groups/' + gid;
+          $.get(api, function(data) {
+              console.log("Group data for " + gid);
+              console.log(data);
+              groupNameNode.text(data.name);
+              groupOwnerNode.text(data.ownerName);
+              var members = extractGroupMembers(data.details.members);
+              groupMembersNode.text(members.join(", "));
+              $("#groupDisplay").show();
+          });
+      }
+
+      function extractGroupMembers(members) {
+          var memberList = [];
+          for (var index = 0; index < members.length; index++) {
+              memberList.push( members[index].name + "(" + members[index].email + ")" );
+          }
+          return memberList;
+      }
+
+    </script>
+
+  </head>
+
+  <body>
+
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <a class="navbar-brand" id="userBlk">User</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav navbar-right">
+            <li><a onclick="showMembership()" id="groupBlk">Group</a></li>
+            <li><a onclick="showMembership()">Membership</a></li>
+            <li><a onclick="showOwnership()">Ownership</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-sm-5 col-md-3 sidebar">
+          <ul class="nav nav-sidebar" id="groupList">
+          </ul>
+        </div>
+        <div class="col-sm-7 col-sm-offset-5 col-md-9 col-md-offset-3 main">
+          <!-- h1 class="page-header">placeholder</h1 -->
+          <div id="groupDisplay" style="display:none">
+            <form>
+              <div class="form-group row">
+                <label for="groupName" class="col-sm-2 col-form-label">Name</label>
+                <div class="col-sm-10">
+                  <p class="form-control-static" id="groupName"></p>
+                </div>
+              </div>
+
+              <div class="form-group row">
+                <label for="groupOwner" class="col-sm-2 col-form-label">Owner</label>
+                <div class="col-sm-10">
+                  <p class="form-control-static" id="groupOwner"></p>
+                </div>
+              </div>
+
+              <div class="form-group row">
+                <label for="groupMembers" class="col-sm-2 col-form-label">Members</label>
+                <div class="col-sm-10">
+                    <p class="form-control-static" id="groupMembers"> </p>
+                </div>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </body>
+</html>
