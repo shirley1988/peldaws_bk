@@ -95,10 +95,10 @@ class User(Base, UserMixin):
     email = Column(String(240))
     current_group_id = Column(String(60), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    ownership = relationship('Group', back_populates='owner')
-    annotations = relationship('Annotation', back_populates='owner')
-    annotation_permissions = relationship('AnnotationPermission', back_populates='user')
-    membership = relationship('Group', secondary=Member.__table__, back_populates='members')
+    #ownership = relationship('Group', back_populates='owner')
+    #annotations = relationship('Annotation', back_populates='owner')
+    #annotation_permissions = relationship('AnnotationPermission', back_populates='user')
+    #membership = relationship('Group', secondary=Member.__table__, back_populates='members')
 
     def __init__(self, name, google_id, email, _id=None):
         self.id = utils.generate_id(_id)
@@ -133,9 +133,9 @@ class Group(Base):
     name = Column(String(240), unique=True)
     owner_id = Column(String(60), ForeignKey('users.id'))
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    owner = relationship('User', back_populates='ownership')
-    audios = relationship('Audio', back_populates='owner')
-    members = relationship('User', secondary=Member.__table__, back_populates='membership')
+    #owner = relationship('User', back_populates='ownership')
+    #audios = relationship('Audio', back_populates='owner')
+    #members = relationship('User', secondary=Member.__table__, back_populates='membership')
 
     def __init__(self, name, owner, _id=None):
         self.id = utils.generate_id(_id)
@@ -169,8 +169,8 @@ class Audio(Base):
     owner_id = Column(String(60), ForeignKey('groups.id'))
     location = Column(String(60), default='')
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    owner = relationship('Group', back_populates='audios')
-    annotations = relationship('Annotation', back_populates='audio')
+    #owner = relationship('Group', back_populates='audios')
+    #annotations = relationship('Annotation', back_populates='audio')
 
     def __init__(self, name, creator, owner, location='', _id=None):
         self.id = utils.generate_id(_id)
@@ -196,9 +196,9 @@ class Annotation(Base):
     audio_id = Column(String(60), ForeignKey('audios.id'))
     owner_id = Column(String(60), ForeignKey('users.id'))
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    audio = relationship('Audio', back_populates='annotations')
-    owner = relationship('User', back_populates='annotations')
-    annotation_permissions = relationship('AnnotationPermission', back_populates='annotation')
+    #audio = relationship('Audio', back_populates='annotations')
+    #owner = relationship('User', back_populates='annotations')
+    #annotation_permissions = relationship('AnnotationPermission', back_populates='annotation')
 
     def __init__(self, name, audio, owner, _id=None):
         self.id = utils.generate_id(_id)
@@ -224,8 +224,8 @@ class AnnotationPermission(Base):
     role = Column(Enum(Role))
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     __table_args__ = (UniqueConstraint('user_id', 'annotation_id', name='_usr_atn_tuple'),)
-    user = relationship('User', back_populates='annotation_permissions')
-    annotation = relationship('Annotation', back_populates='annotation_permissions')
+    #user = relationship('User', back_populates='annotation_permissions')
+    #annotation = relationship('Annotation', back_populates='annotation_permissions')
 
     def __init__(self, user, annotation, role, _id):
         self.id = utils.generate_id(_id)
@@ -242,6 +242,27 @@ class AnnotationPermission(Base):
             'created_at': self.created_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
 
+
+User.__mapper__.add_property('ownership', relationship('Group', back_populates='owner'))
+Group.__mapper__.add_property('owner', relationship('User', back_populates='ownership'))
+
+User.__mapper__.add_property('annotations', relationship('Annotation', back_populates='owner'))
+Annotation.__mapper__.add_property('owner', relationship('User', back_populates='annotations'))
+
+User.__mapper__.add_property('annotation_permissions', relationship('AnnotationPermission', back_populates='user'))
+AnnotationPermission.__mapper__.add_property('user', relationship('User', back_populates='annotation_permissions'))
+
+User.__mapper__.add_property('membership', relationship('Group', secondary=Member.__table__, back_populates='members'))
+Group.__mapper__.add_property('members', relationship('User', secondary=Member.__table__, back_populates='membership'))
+
+Group.__mapper__.add_property('audios', relationship('Audio', back_populates='owner'))
+Audio.__mapper__.add_property('owner', relationship('Group', back_populates='audios'))
+
+Audio.__mapper__.add_property('annotations', relationship('Annotation', back_populates='audio'))
+Annotation.__mapper__.add_property('audio', relationship('Audio', back_populates='annotations'))
+
+Annotation.__mapper__.add_property('annotation_permissions', relationship('AnnotationPermission', back_populates='annotation'))
+AnnotationPermission.__mapper__.add_property('annotation', relationship('Annotation', back_populates='annotation_permissions'))
 
 @app.route('/oauth2callback')
 @googlelogin.oauth2callback

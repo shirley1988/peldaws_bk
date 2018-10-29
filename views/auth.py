@@ -31,11 +31,30 @@ def api_list_groups():
 
 
 # current user's profile
-@app.route('/auth/profile', methods=['GET'])
+@app.route('/auth/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
     user = g.user
-    return jsonify(user.details())
+    if request.method == 'GET':
+        return jsonify(user.details())
+    # current only allow to update current group
+    _group = None
+    print request.headers
+    _gId = request.json.get('groupId')
+    _gName = request.json.get('groupName')
+    if _gId:
+        _group = praat.Group.query.get(_gId)
+    if _group is None and _gName:
+        _group = praat.Group.query.filter_by(name=_gName).first()
+    if _group is None:
+        return "Invalid target group info"
+    if user in _group.members:
+        print "old group id: " + user.current_group_id
+        print "new group id: " + _group.id
+        user.current_group_id = _group.id
+        praat.db_session.commit()
+        return "Successfully updated user's current group"
+    return "User is not a member of target group"
 
 
 # retrieve groups owned by current user
@@ -68,6 +87,15 @@ def group_summary(groups):
     return list(gp.summary() for gp in groups)
 
 
+def find_user(uid=None, email=None):
+    if uid is None and email is None:
+        return None
+    if uid is not None:
+        return praat.User.query.get(uid)
+    return praat.User.query.filter_by(email=email).first()
+
+
+
 # retrieve or update group info
 @app.route('/auth/groups/<gid>', methods=['GET', 'POST'])
 # TODO: require login
@@ -89,10 +117,9 @@ def group_ops(gid):
         if not praat.is_owner(operator, group):
             return "User %s has no permission to update group %s" % (operator.name, group.name)
         action = request.json.get('action', '').lower()
-        uid = request.json.get('userId', '')
         if not action in allowed_actions:
             return "Invalid action %s" % (action)
-        user = praat.User.query.get(uid)
+        user = find_user(uid=request.json.get('userId'), email=request.json.get('userEmail'))
         if user is None:
             return "User not found"
         print "Operator name: %s , id: %s" % (operator.name, operator.id)

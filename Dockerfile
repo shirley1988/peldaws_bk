@@ -1,7 +1,7 @@
 
 FROM python:2.7
 
-MAINTAINER YQCHEN
+MAINTAINER NANALIU
 
 RUN mkdir /code
 WORKDIR /code
